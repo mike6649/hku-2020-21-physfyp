@@ -1,4 +1,5 @@
 # Build and run pythia event generator:
+- Copy over `PYTHIA_DIR/examples/Makefile.inc` into the main directory
 - `make main01` then `./main01.exe`
 
 # Measurement of the chance of misidentification of electrons in Accelerator event data
