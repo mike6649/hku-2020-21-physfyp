@@ -13,4 +13,11 @@ Roadmap for the project on:
   -	By using higher √s data
   -	Amend if necessary
 
-ETC ~ 3 months?
+# 2020 Oct 16 Meeting Notes
+- TODO Generate the sample events before next week
+- In Pythia, turn on detector simulation
+  - Only turn on electroweak processes
+  - pp -> Z -> ee
+- The information about electron misidentification is stored in the sample
+- After succeed
+  - Use ROOT to perform further analysis
