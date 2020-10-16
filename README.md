@@ -1,5 +1,8 @@
-Roadmap for the project on:
+# Build and run pythia event generator:
+- `make main01` then `./main01.exe`
+
 # Measurement of the chance of misidentification of electrons in Accelerator event data
+## Project Roadmap
 
 - A brief rundown derivation of the steps in obtaining the charge flip rate ϵ<sub>i</sub>
   - Including the likelihood function 

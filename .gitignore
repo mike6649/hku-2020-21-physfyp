@@ -1,3 +1,6 @@
+# PYTHIA Makefile configuration. Get this file from your generated pythia/examples/Makefile.inc
+Makefile.inc
+
 # Prerequisites
 *.d
 
