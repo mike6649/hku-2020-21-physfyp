@@ -2,14 +2,11 @@
      #include "Pythia8/Pythia.h" // Include Pythia headers.  
      using namespace Pythia8;    // Let Pythia8:: be implicit.  
  
-     int main() {                // Begin main program.  
+     int main(int argc, char* argv[]) {                // Begin main program.  
  
        // Set up generation.  
        Pythia pythia;            // Declare Pythia object  
-       pythia.readString("Top:gg2ttbar = on"); // Switch on process.
-	pythia.readString("Top:qqbar2ttbar = on");
-  
-       pythia.readString("Beams:eCM = 8000."); // 8 TeV CM energy.  
+       pythia.readFile(argv[1]);
        pythia.init(); // Initialize; incoming pp beams is default.  
  
        // Generate event(s).  

@@ -1,0 +1,9 @@
+Beams:idA = 2212 ! proton
+Beams:idB = 2212 ! second beam is also a proton
+Beams:eCM = 13000 ! cm energy
+! Top:gg2ttbar = on
+!WeakZ0:gmZmode = on
+WeakBosonExchange:all = on
+WeakSingleBoson:all = on
+WeakDoubleBoson:all = on
+WeakBosonAndParton:all = on
