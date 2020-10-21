@@ -25,3 +25,14 @@
 - The information about electron misidentification is stored in the sample
 - After succeed
   - Use ROOT to perform further analysis
+
+# 2020 Oct 21 Meeting Notes
+- Done: Generate HepMC Events from Pythia
+- TODO:
+  - Install Delphes for detector simulation
+    - Input .HepMC, output .ROOT
+  - Pythia:
+    - Further [specify allowed processes](http://home.thep.lu.se/~torbjorn/pythia82html/ElectroweakProcesses.html)
+    - *Only* pure Z -> lepton lepton , no gamma
+  - ROOT:
+    - Get 4 momentum of electrons, to get the invariant mass of the Z Boson
