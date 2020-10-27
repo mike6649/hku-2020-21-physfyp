@@ -2,6 +2,12 @@ Beams:idA = 2212 ! proton
 Beams:idB = 2212 ! second beam is also a proton
 Beams:eCM = 13000 ! cm energy
 
+!http://home.thep.lu.se/~torbjorn/pythia81html/MainProgramSettings.html
+Main:numberOfEvents = 1000 ! default 1000
+Main:timesAllowErrors = 10 ! default 10
+
+Init:showOneParticleData = 23 ! show Z0 data
+
 ! http://home.thep.lu.se/~torbjorn/pythia83html/ElectroweakProcesses.html
 WeakZ0:gmZmode = 2 ! Only pure Z^0 contribution
 WeakSingleBoson:ffbar2ffbar(s:gmZ) = on ! ffbar scattering with Z0
