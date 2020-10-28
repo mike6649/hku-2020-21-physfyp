@@ -37,6 +37,21 @@ $(PYTHIA):
 	$(error Error: PYTHIA must be built, please run "make"\
                 in the top PYTHIA directory)
 
+# HEPMC3.
+main-hepmc3: $(PYTHIA) $$@.cc
+ifeq ($(HEPMC3_USE),true)
+	$(CXX) $@.cc -o $@.exe $(HEPMC3_INCLUDE) $(CXX_COMMON) $(HEPMC3_LIB)
+else
+	 $(error Error: $@ requires HEPMC3)
+endif
+
+main-hepmc: $(PYTHIA) $$@.cc
+ifeq ($(HEPMC3_USE),true)
+	$(CXX) $@.cc -o $@.exe $(HEPMC3_INCLUDE) $(CXX_COMMON) $(HEPMC3_LIB)
+else
+	 $(error Error: $@ requires HEPMC3)
+endif
+
 # Examples without external dependencies.
 main%: $(PYTHIA) main%.cc
 	$(CXX) $@.cc -o $@.exe $(CXX_COMMON)
