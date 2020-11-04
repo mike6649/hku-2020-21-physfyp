@@ -36,3 +36,15 @@
     - *Only* pure Z -> lepton lepton , no gamma
   - ROOT:
     - Get 4 momentum of electrons, to get the invariant mass of the Z Boson
+
+# 2020 Oct 28 Meeting Notes
+- No progress, Delphes rejected Pythia HepMC format
+- TODO:
+  - Further troubleshooting together
+
+# 2020 Nov 04 Meeting Notes 
+- Done
+  - Using Madgraph & Delphes, generate ROOT file
+  - linking Delphes libraries and headers with ROOT
+- TODO:
+  - Use ROOT TLorentzVector::M (?) to find the invariant mass

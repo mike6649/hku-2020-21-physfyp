@@ -1,6 +1,12 @@
 # PYTHIA Makefile configuration. Get this file from your generated pythia/examples/Makefile.inc
 Makefile.inc
 
+# root macro to run whenever root is started in this directory. The following lines should be included
+#    gROOT->ProcessLine(".include /path/to/delphes/");
+#    gROOT->ProcessLine(".include /path/to/delphes/external/");
+#    gSystem->Load("/path/to/delphes/libDelphes");
+rootlogon.C
+
 # .vscode/**
 .vscode/
 
