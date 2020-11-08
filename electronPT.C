@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void diElectronMass (char* fileName) {
+void electronPT (char* fileName) {
   // Create chain of root trees
   TChain chain("Delphes");
   chain.Add(fileName);
@@ -20,7 +20,7 @@ void diElectronMass (char* fileName) {
   TClonesArray *branchElectron = treeReader->UseBranch("Electron");
 
   // Book histograms
-  TH1 *histDiElectronMass = new TH1F("M", "M_{inv}(e_{1},e_{2})", 100, 40, 140);
+  TH1 *histElectronPT = new TH1F("P_{T}", "P_{T}", 50, 0.0, 100.0);
   // Loop over all events
   for(Int_t entry = 0; entry < numberOfEntries; ++entry)
   {
@@ -28,23 +28,21 @@ void diElectronMass (char* fileName) {
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
   
-    if (branchElectron->GetEntries() > 1)
+    if (branchElectron->GetEntries() > 0)
     {
 
       Electron *e1 = (Electron*) branchElectron->At(0);
-      Electron *e2 = (Electron*) branchElectron->At(1);
       
-      Double_t invMass = (e1->P4()+e2->P4()).M();
 
-      // Plot electron mass
-      histDiElectronMass->Fill(invMass);
+      // Plot electron PT
+      histElectronPT->Fill(e1->PT);
 
-      // Print electron mass
-      cout << invMass << endl;
+      // Print electron PT
+      cout << e1->PT << endl;
     }
 
   }
 
   // Show resulting histograms
-  histDiElectronMass->Draw();
+  histElectronPT->Draw();
 }
