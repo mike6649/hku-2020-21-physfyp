@@ -3,11 +3,11 @@
 2. From here either use MadGraph or Pythia for MC event generation
   - Pythia
     - [Install Pythia and Delphes](https://cp3.irmp.ucl.ac.be/projects/delphes/wiki/WorkBook/Pythia8)
-    - `. $DELPHES/DephesPythia8 $DELPHES/cards/delphes_card_CMS.tcl configZtoee.cmnd delphes_output.root`
+    - `. $DELPHES/DephesPythia8 $DELPHES/cards/delphes_card_ATLAS.tcl configZtoee.cmnd delphes_output.root`
   - MadGraph
     - Install MadGraph
-    - Generate the process and output to HepMC format
-    - `. $DELPHES/DephesHepMC $DELPHES/cards/delphes_card_CMS.tcl delphes_output.root output.hepmc`
+    - Generate the process `p p > Z , Z > e+ e-` and output to HepMC format
+    - `. $DELPHES/DephesHepMC $DELPHES/cards/delphes_card_ATLAS.tcl delphes_output.root output.hepmc`
 4. `root -l`
 5. `gROOT->ProcessLine(".include /path/to/delphes/");`
 `gROOT->ProcessLine(".include /path/to/delphes/external/");`
@@ -60,3 +60,14 @@
   - linking Delphes libraries and headers with ROOT
 - TODO:
   - Use ROOT TLorentzVector::M (?) to find the invariant mass
+
+# 2020 Nov 11 Meeting Notes
+- Done
+  - Generate ROOT file (10000 events)
+  - Graph the Z invariant Mass with `diElectronMass.C`
+  - *0* mis-identified electrons (expected ~10)
+  - Verify eta distribution cuts off at 2.5
+- TODO:
+  - Try Delphes again with 100k events
+  - Check parents of all electrons are from Z
+  - Discuss further if *0* misId rate again

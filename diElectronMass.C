@@ -18,7 +18,7 @@ void diElectronMass (char* fileName) {
   
   // Get pointers to branches used in this analysis
   TClonesArray *branchElectron = treeReader->UseBranch("Electron");
-
+  
   // Book histograms
   TH1 *histDiElectronMass = new TH1F("M", "M_{inv}(e_{1},e_{2})", 100, 40, 140);
   // Loop over all events
