@@ -29,6 +29,11 @@
   -	By using higher √s data
   -	Amend if necessary
 
+# 2020 Nov 18
+- No progress, 0 misId rate.
+- TODO:
+  - Get ATLAS GEANT4 sample and retry
+
 # 2020 Nov 11 Meeting Notes
 - Done
   - Generate ROOT file (10000 events)
