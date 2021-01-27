@@ -29,6 +29,12 @@
   -	By using higher √s data
   -	Amend if necessary
 
+# 2021 Jan 27 Meeting Notes
+- Done
+  - Calculate mis-id rate with `misIdCount2.C`
+- TODO:
+  - Implement likelihood method
+
 # 2020 Nov 11 Meeting Notes
 - Done
   - Generate ROOT file (10000 events)
