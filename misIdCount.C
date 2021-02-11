@@ -1,55 +1,91 @@
-#include "TChain.h"
-#include "external/ExRootAnalysis/ExRootTreeReader.h"
-#include "classes/DelphesClasses.h"
+// Usage:
+// g++ -o misIdCount2.exe misIdCount2.C `root-config --cflags --libs`
+// ./misIdCount2.exe
+#include "TFile.h"
 #include "TH1F.h"
-#include "TClonesArray.h"
+#include "TTreeReader.h"
+#include "TTreeReaderValue.h"
 #include <iostream>
+#include <vector>
+#include <string>
+#ifdef __MAKECINT__
+#pragma link C++ class vector < float> + ;
+#endif
 
 using namespace std;
 
-void misIdCount (char* fileName) {
+void misIdCount2(char *fileName)
+{
+
+  Long64_t totalE = 0;
+  Long64_t totalAnti = 0;
+  Long64_t tEToAnti = 0;
+  Long64_t tAntiToE = 0;
+
+  TFile *myFile = TFile::Open(fileName);
   // Create chain of root trees
-  TChain chain("Delphes");
-  chain.Add(fileName);
-  
-  // Create object of class ExRootTreeReader
-  ExRootTreeReader *treeReader = new ExRootTreeReader(&chain);
-  Long64_t numberOfEntries = treeReader->GetEntries();
-  
-  // Get pointers to branches used in this analysis
-  TClonesArray *branchElectron = treeReader->UseBranch("Electron");
-  TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+  // TTreeReader myReader("nominal_Loose;724", myFile);
+  TTree *t1 = (TTree *)myFile->Get("nominal_Loose;724");
 
-  cout << "** Chain contains " << numberOfEntries << " events" << endl;
-  // Loop over all events
+  // TTreeReader reader("nominal_Loose;724", myFile);
+  // t1->Print();
 
-  Long64_t count = 0;
-  Long64_t noElectrons = 0;
-  for(Int_t entry = 0; entry < numberOfEntries; ++entry)
+  vector<int> *el_true_pdg = 0;
+  TBranch *b_el_true_pdg = 0;
+  vector<int> *el_charge = 0;
+  TBranch *b_el_charge = 0;
+  t1->ResetBranchAddresses();
+  t1->SetBranchAddress("el_true_pdg", &el_true_pdg, &b_el_true_pdg);
+  t1->SetBranchAddress("el_charge", &el_charge, &b_el_charge);
+
+  Long64_t nentries = t1->GetEntries();
+  for (Long64_t i = 0; i < 10000; i++)
   {
+    Long64_t tentry = t1->LoadTree(i);
+    b_el_true_pdg->GetEntry(tentry);
+    b_el_charge->GetEntry(tentry);
 
-    // Load selected branches with data from specified event
-    treeReader->ReadEntry(entry);
-
-    // cout << "** Branch contains " << branchElectron->GetEntriesFast() << " items" << endl;
-    for(Int_t i = 0; i < branchElectron->GetEntriesFast(); ++i)
+    float true_charge = 0;
+    if (el_true_pdg->size()!=2)
     {
-      noElectrons++;
-      
-      Electron* electron = (Electron*) branchElectron->At(i);
-      GenParticle* particle = (GenParticle*) electron->Particle.GetObject();
-
-      // cout << particle->Charge << " "  << electron->Charge << endl;
-
-      if (particle->Charge  != electron->Charge ) { // charge misid
-        count++;
-      } 
-
+      cout << el_true_pdg->size() << endl;
     }
-
+    for (Long64_t j = 0; j < el_true_pdg->size(); j++)
+    {
+      if (el_true_pdg->at(j)!=11 && el_true_pdg->at(j)!=-11 )
+      {
+        // cout << i << "\t" << el_true_pdg->at(j) << endl;
+        continue;
+      }
+      true_charge = el_true_pdg->at(j) == 11 ? -1 : 1;
+      if (true_charge == 1)
+      {
+        totalAnti++;
+      }
+      else
+      {
+        totalE++;
+      }
+      if (true_charge != el_charge->at(j))
+      {
+        // cout << el_true_pdg->at(j) << "\t" << el_charge->at(j) << endl;
+        if (true_charge == 1)
+        {
+          tAntiToE++;
+        }
+        else
+        {
+          tEToAnti++;
+        }
+      }
+    }
   }
+  cout << totalE << "\t" << totalAnti << "\t" << tAntiToE << "\t" << tEToAnti;
+  t1->ResetBranchAddresses();
+}
 
-  // Show resulting histograms
-  // histElectronPT->Draw();
-  cout << "MisID " << count << " out of " << noElectrons << " electrons" << endl;
+int main(int argc, char **argv)
+{
+  misIdCount2(argv[1]);
+  return 0;
 }
