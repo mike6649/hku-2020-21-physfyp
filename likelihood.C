@@ -9,9 +9,16 @@
 // https://root.cern.ch/root/html534/tutorials/fit/NumericalMinimization.C.html
 #include "TFile.h"
 #include "TMath.h"
+#include "TGraph.h"
 #include "TH1F.h"
+#include "TCanvas.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+
+// #include "Math/KahanSum.h"
+#include "Math/Minimizer.h"
+#include "Math/Factory.h"
+#include "Math/Functor.h"
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -27,9 +34,11 @@ public:
   // Bin(i,j) is the bin with
   // pT_bins[i-1] <= pT < pT_bins[i-1] , (in MeV)
   // eta_bins[j-1] <= eta < eta_bins[j-1]
-  static constexpr Float_t pT_bins[] = {25000,  60000,  90000,
+  static constexpr Double_t pT_bins[] = {25000,  60000,  90000,
                                         130000, 150000, 1000000};
-  static constexpr Float_t eta_bins[] = {0.50, 1, 1.37, 1.52, 1.8, 2, 2.47};
+  // static constexpr Float_t eta_bins[] = {0.50, 1, 1.37, 1.52, 1.8, 2, 2.47};
+  static constexpr Double_t eta_bins[] = {0.50, 1, 1.8, 2, 2.47};
+
   int pT_bin_index;
   int eta_bin_index;
   Bin(int pT_bin_index, int eta_bin_index) {
@@ -115,12 +124,12 @@ public:
   }
 
   friend ostream &operator<<(ostream &os, Events &events) {
-    for (int i = 0; i < size(Bin::pT_bins); i++) {
-      for (int j = 0; j < size(Bin::eta_bins); j++) {
+    for (int i = 0; i < size(Bin::pT_bins) ; i++) {
+      for (int j = 0; j < size(Bin::eta_bins) ; j++) {
         Bin a(i, j);
         os << "=======\n Leading Electron in " << a << endl;
-        for (int k = 0; k < size(Bin::pT_bins); k++) {
-          for (int l = 0; l < size(Bin::eta_bins); l++) {
+        for (int k = 0; k < size(Bin::pT_bins) ; k++) {
+          for (int l = 0; l < size(Bin::eta_bins) ; l++) {
             os << events.get(a, Bin(k, l)) << "\t";
           }
           os << "\n";
@@ -132,14 +141,104 @@ public:
   }
 };
 
-Float_t likelihood_function(const Double_t &totalEvents, const Double_t &ssEvents,
-                       Float_t e_i, Float_t e_j) {
-  return - (ssEvents * TMath::Log(totalEvents*(e_i*(1-e_j)+(1-e_i)*e_j)) - totalEvents*(e_i*(1-e_j)+(1-e_i)*e_j));
+Events ssEvents;
+Events allEvents;
+
+double likelihood_single(const Long64_t &numTotal, const Long64_t &numSS,
+                       const double &e_i, const double &e_j) {
+  return - (numSS * TMath::Log(numTotal*(e_i*(1-e_j)+(1-e_i)*e_j)) - numTotal*(e_i*(1-e_j)+(1-e_i)*e_j));
 }
+
+double likelihood_sum(const double* e) {
+  ROOT::Math::KahanSum<double,4> k;
+    k.Add(1000000.);
+  std::vector<double> numbers;
+  // double sum = 0;
+    for (int i = 0; i < size(Bin::pT_bins) ; i++) {
+      for (int j = 0; j < size(Bin::eta_bins) ; j++) {
+        Bin a(i, j);
+        for (int k = 0; k < size(Bin::pT_bins) ; k++) {
+          for (int l = 0; l < size(Bin::eta_bins) ; l++) {
+            Bin b(k,l);
+            if (allEvents.get(a,b) == 0 ) {  // avoid divide by zero
+              continue;
+            }
+            if (i*size(Bin::eta_bins)+j >= size(Bin::eta_bins) * size(Bin::pT_bins) ||
+            k*size(Bin::eta_bins)+l >= size(Bin::eta_bins) * size(Bin::pT_bins)) {
+              std::cout << "YOU SCREWED UP";
+            }
+            numbers.push_back(likelihood_single(allEvents.get(a,b),ssEvents.get(a,b),e[i*size(Bin::eta_bins)+j],e[k*size(Bin::eta_bins)+l]));
+          }
+        }
+      }
+    }
+  k.Add(numbers);
+  return k.Sum();
+}
+
+void minimize(){
+
+  const char* minName = "Minuit2";
+  const char* algoName = "";
+  int randomSeed = -1;
+  const int numDimensions = size(Bin::pT_bins) * size(Bin::eta_bins);   // 6 pt, 5 eta
+
+    ROOT::Math::Minimizer* min = ROOT::Math::Factory::CreateMinimizer(minName,algoName);
+
+
+  // set tolerance, etc...
+  min->SetMaxFunctionCalls(10000000); // for Minuit/Minuit2 
+  min->SetStrategy(1);
+   min->SetMaxIterations(10000000);  // for GSL 
+   min->SetTolerance(1);
+   min->SetPrintLevel(2);
+
+   // create funciton wrapper for minmizer
+   // a IMultiGenFunction type 
+   ROOT::Math::Functor f(&likelihood_sum,numDimensions);
+
+  // step
+  double step[numDimensions];
+  // starting point
+  double variable[numDimensions];
+   for (int i=0;i<numDimensions;i++){
+     step[i] = 0.01;
+     variable[i] = 0.001;
+   }
+
+ 
+   min->SetFunction(f);
+  
+   // Set the free variables to be minimized!
+
+  //  for (int i=0;i<5;i++){
+  //    min->FixVariable(i);
+  //  }
+ 
+   // do the minimization
+   min->Minimize();
+
+   const double *xs = min->X();
+   for (int i=0;i<size(Bin::pT_bins);i++){
+     for (int j=0;j<size(Bin::eta_bins);j++){
+      std::cout << xs[i*size(Bin::eta_bins) + j] << "\t";
+     }
+     std::cout << std::endl;
+   }
+   std::cout << min->MinValue() << std::endl;
+
+   auto c = new TCanvas("c","c",600,600);
+   for (int i=0;i<size(Bin::eta_bins);i++){
+    TGraph* h = new TGraph(6,Bin::pT_bins,xs + (i*size(Bin::eta_bins)));
+    h->Draw("*");
+   }
+}
+
 
 void likelihood(char *fileName) {
 
-  Events allEvents;
+  auto graph = new TH1F("dielectron mass","#",100,0,120000);
+  auto c = new TCanvas();
 
   TFile *myFile = TFile::Open(fileName);
   // Create chain of root trees
@@ -154,34 +253,128 @@ void likelihood(char *fileName) {
 
   vector<Float_t> *el_eta = 0;
   TBranch *b_el_eta = 0;
-  // t1->Print();
+
+  vector<Float_t> *el_e = 0;
+  TBranch *b_el_e = 0;
+
+  vector<Float_t> *el_phi = 0;
+  TBranch *b_el_phi = 0;
+
+  t1->Print();
   t1->ResetBranchAddresses();
   t1->SetBranchAddress("el_charge", &el_charge, &b_el_charge);
   t1->SetBranchAddress("el_pt", &el_pt, &b_el_pt);
   t1->SetBranchAddress("el_eta", &el_eta, &b_el_eta);
+  t1->SetBranchAddress("el_e", &el_e, &b_el_e);
+  t1->SetBranchAddress("el_phi", &el_phi, &b_el_phi);
+
+  // MCTruth
+  Events mc_total;   // not use first bins
+  Events mc_flip;
+  vector<int> *el_true_pdg = 0; 
+  TBranch *b_el_true_pdg = 0;
+  t1->SetBranchAddress("el_true_pdg", &el_true_pdg, &b_el_true_pdg);
 
   Long64_t nentries = t1->GetEntries();
 
-  for (Long64_t i = 0; i < nentries; i++) {
+  Float_t pt_0;
+  Float_t pt_1;
+  Float_t eta_0;
+  Float_t eta_1;
+  Float_t phi_0,phi_1;
+  Float_t px,py,pz, energy, mass;
+
+  Bin dummy (0,0);
+
+  for (Long64_t i = 0; i < 1000000; i++) {
     Long64_t tentry = t1->LoadTree(i);
     b_el_charge->GetEntry(tentry);
     b_el_pt->GetEntry(tentry);
     b_el_eta->GetEntry(tentry);
+    b_el_e->GetEntry(tentry);
+    b_el_phi->GetEntry(tentry);
 
-    if ((*el_pt)[0] > (*el_pt)[1]) { // first element is leading lepton
-      allEvents.put(Bin((*el_pt)[0], (*el_eta)[0]),
-                    Bin((*el_pt)[1], (*el_eta)[1]));
+    pt_0 = (*el_pt)[0];
+    pt_1 = (*el_pt)[1];
+    eta_0 = (*el_eta)[0];
+    eta_1 = (*el_eta)[1];
+    phi_0 = (*el_phi)[0];
+    phi_1 = (*el_phi)[1];
+
+    // apply preselection
+    px = pt_0 * TMath::Cos(phi_0) + pt_1 * TMath::Cos(phi_1);
+    py = pt_0 * TMath::Sin(phi_0) + pt_1 * TMath::Sin(phi_1);
+    pz = pt_0 * TMath::SinH(eta_0) + pt_1 * TMath::SinH(eta_1);
+    energy = (*el_e)[0] + (*el_e)[1];
+    mass = TMath::Power(energy,2) - px*px - py*py - pz*pz;
+    mass = TMath::Sqrt(mass);
+    // cout << TMath::Sqrt(mass) << endl;
+    graph->Fill(mass);
+    if (mass < 80000 || mass > 100000) continue;  // mass between 80-100 MeV
+
+    eta_0 = TMath::Abs(eta_0);
+    eta_1 = TMath::Abs(eta_1);
+
+    if (pt_0 > pt_1) { // first element is leading lepton
+      allEvents.put(Bin(pt_0, eta_0),
+                    Bin(pt_1, eta_1));
+      if ((*el_charge)[0] == (*el_charge)[1]){  // same sign
+      ssEvents.put(Bin(pt_0, eta_0),
+                    Bin(pt_1, eta_1));
+      }
     } else {
-      allEvents.put(Bin((*el_pt)[1], (*el_eta)[1]),
-                    Bin((*el_pt)[0], (*el_eta)[0]));
+      allEvents.put(Bin(pt_1, eta_1),
+                    Bin(pt_0, eta_0));
+      if ((*el_charge)[0] == (*el_charge)[1]){
+      ssEvents.put(Bin(pt_1, eta_1),
+                    Bin(pt_0, eta_0));
+      }
+    }
+
+    // MCTruth
+    b_el_true_pdg->GetEntry(tentry);
+    float true_charge = 0;
+
+    for (Long64_t j = 0; j < 2; j++)
+    {
+      pt_0 = (*el_pt)[j];
+      eta_0 = (*el_eta)[j];
+      if (el_true_pdg->at(j)!=11 && el_true_pdg->at(j)!=-11 )
+      {
+        continue;
+      }
+      true_charge = el_true_pdg->at(j) == 11 ? -1 : 1;
+      mc_total.put(dummy,Bin(pt_0,eta_0));
+      if (true_charge != el_charge->at(j))
+      {
+        mc_flip.put(dummy,Bin(pt_0,eta_0));
+      }
     }
   }
 
-  cout << allEvents;
+  cout << ssEvents << endl;
 
   t1->ResetBranchAddresses();
 
   myFile->Close();
+
+  graph->Draw();
+  minimize();
+
+  // output truth
+  cout << "MC TRUTH ----------\n";
+  for (int i = 0; i < size(Bin::pT_bins) ; i++) {
+    for (int j = 0; j < size(Bin::eta_bins) ; j++) {
+      Bin b(i,j);
+      if (mc_total.get(dummy,b) == 0) {
+        cout << "0\t";
+      } else {
+      cout << (float)mc_flip.get(dummy,b)/ (float)mc_total.get(dummy,b) << "\t";
+      }
+    }
+    cout << endl;
+  }
+
 }
 
 int main(int argc, char **argv) {
