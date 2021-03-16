@@ -10,6 +10,7 @@
 #include "TFile.h"
 #include "TMath.h"
 #include "TGraph.h"
+#include "TMultiGraph.h"
 #include "TH1F.h"
 #include "TCanvas.h"
 #include "TTreeReader.h"
@@ -36,8 +37,10 @@ public:
   // eta_bins[j-1] <= eta < eta_bins[j-1]
   static constexpr Double_t pT_bins[] = {25000,  60000,  90000,
                                         130000, 150000, 1000000};
-  // static constexpr Float_t eta_bins[] = {0.50, 1, 1.37, 1.52, 1.8, 2, 2.47};
-  static constexpr Double_t eta_bins[] = {0.50, 1, 1.8, 2, 2.47};
+  static constexpr Double_t eta_bins[] = {0, 0.50, 1, 1.8, 2, 2.47};
+
+  static constexpr int numPTBins = size(Bin::pT_bins) - 1;
+  static constexpr int numEtaBins = size(Bin::eta_bins) - 1;
 
   int pT_bin_index;
   int eta_bin_index;
@@ -46,27 +49,23 @@ public:
     this->eta_bin_index = eta_bin_index;
   }
   Bin(Float_t pT, Float_t eta) {
-    bool done = 0;
-    for (int i = 0; i < size(this->pT_bins); i++) {
-      if (pT < this->pT_bins[i]) {
-        this->pT_bin_index = i;
-        done = true;
-        break;
-      }
-    }
-    if (!done)
-      this->pT_bin_index = size(this->pT_bins);
+    this->pT_bin_index = 0;
+    this->eta_bin_index = 0;
 
-    done = 0;
-    for (int i = 0; i < size(this->eta_bins); i++) {
-      if (eta < this->eta_bins[i]) {
-        this->eta_bin_index = i;
-        done = true;
+    for (int i = 0; i < size(this->pT_bins) - 1; i++) {
+      if (pT > this->pT_bins[i] && pT < this->pT_bins[i+1]) {
+        this->pT_bin_index = i;
         break;
       }
     }
-    if (!done)
-      this->eta_bin_index = size(this->eta_bins);
+
+    for (int i = 0; i < size(this->eta_bins) - 1; i++) {
+      if (eta > this->eta_bins[i] && eta < this->eta_bins[i+1]) {
+        this->eta_bin_index = i;
+        break;
+      }
+    }
+
   }
 
   friend ostream &operator<<(ostream &os, const Bin &b) {
@@ -124,12 +123,12 @@ public:
   }
 
   friend ostream &operator<<(ostream &os, Events &events) {
-    for (int i = 0; i < size(Bin::pT_bins) ; i++) {
-      for (int j = 0; j < size(Bin::eta_bins) ; j++) {
+    for (int i = 0; i < Bin::numPTBins; i++) {
+      for (int j = 0; j < Bin::numEtaBins ; j++) {
         Bin a(i, j);
         os << "=======\n Leading Electron in " << a << endl;
-        for (int k = 0; k < size(Bin::pT_bins) ; k++) {
-          for (int l = 0; l < size(Bin::eta_bins) ; l++) {
+        for (int k = 0; k < Bin::numPTBins; k++) {
+          for (int l = 0; l < Bin::numEtaBins ; l++) {
             os << events.get(a, Bin(k, l)) << "\t";
           }
           os << "\n";
@@ -154,20 +153,16 @@ double likelihood_sum(const double* e) {
     k.Add(1000000.);
   std::vector<double> numbers;
   // double sum = 0;
-    for (int i = 0; i < size(Bin::pT_bins) ; i++) {
-      for (int j = 0; j < size(Bin::eta_bins) ; j++) {
+    for (int i = 0; i < Bin::numPTBins ; i++) {
+      for (int j = 0; j < Bin::numEtaBins ; j++) {
         Bin a(i, j);
-        for (int k = 0; k < size(Bin::pT_bins) ; k++) {
-          for (int l = 0; l < size(Bin::eta_bins) ; l++) {
+        for (int k = 0; k < Bin::numPTBins; k++) {
+          for (int l = 0; l < Bin::numEtaBins; l++) {
             Bin b(k,l);
             if (allEvents.get(a,b) == 0 ) {  // avoid divide by zero
               continue;
             }
-            if (i*size(Bin::eta_bins)+j >= size(Bin::eta_bins) * size(Bin::pT_bins) ||
-            k*size(Bin::eta_bins)+l >= size(Bin::eta_bins) * size(Bin::pT_bins)) {
-              std::cout << "YOU SCREWED UP";
-            }
-            numbers.push_back(likelihood_single(allEvents.get(a,b),ssEvents.get(a,b),e[i*size(Bin::eta_bins)+j],e[k*size(Bin::eta_bins)+l]));
+            numbers.push_back(likelihood_single(allEvents.get(a,b),ssEvents.get(a,b),e[i*Bin::numEtaBins+j],e[k*Bin::numEtaBins+l]));
           }
         }
       }
@@ -176,19 +171,22 @@ double likelihood_sum(const double* e) {
   return k.Sum();
 }
 
+inline double getXValueAt(const double* xs, const int& pt_index, const int& eta_index ) {
+  return xs[pt_index*Bin::numEtaBins + eta_index];
+}
+
 void minimize(){
 
   const char* minName = "Minuit2";
   const char* algoName = "";
   int randomSeed = -1;
-  const int numDimensions = size(Bin::pT_bins) * size(Bin::eta_bins);   // 6 pt, 5 eta
+  const int numDimensions = Bin::numPTBins * Bin::numEtaBins;   // 6 pt, 5 eta
 
     ROOT::Math::Minimizer* min = ROOT::Math::Factory::CreateMinimizer(minName,algoName);
 
-
   // set tolerance, etc...
   min->SetMaxFunctionCalls(10000000); // for Minuit/Minuit2 
-  min->SetStrategy(1);
+  min->SetStrategy(2);
    min->SetMaxIterations(10000000);  // for GSL 
    min->SetTolerance(1);
    min->SetPrintLevel(2);
@@ -203,14 +201,14 @@ void minimize(){
   double variable[numDimensions];
    for (int i=0;i<numDimensions;i++){
      step[i] = 0.01;
-     variable[i] = 0.001;
+     variable[i] = 0.002;
    }
-
  
    min->SetFunction(f);
-  
    // Set the free variables to be minimized!
-
+   for (int i=0;i<numDimensions;i++){
+   min->SetVariable(0,"e"+std::to_string(i/Bin::numEtaBins) + std::to_string(i%Bin::numEtaBins),variable[i], step[i]);
+   }
   //  for (int i=0;i<5;i++){
   //    min->FixVariable(i);
   //  }
@@ -219,19 +217,30 @@ void minimize(){
    min->Minimize();
 
    const double *xs = min->X();
-   for (int i=0;i<size(Bin::pT_bins);i++){
-     for (int j=0;j<size(Bin::eta_bins);j++){
-      std::cout << xs[i*size(Bin::eta_bins) + j] << "\t";
+   for (int i=0;i<Bin::numPTBins;i++){
+     for (int j=0;j<Bin::numEtaBins;j++){
+      std::cout << xs[i*Bin::numEtaBins + j] << "\t";
      }
      std::cout << std::endl;
    }
    std::cout << min->MinValue() << std::endl;
 
    auto c = new TCanvas("c","c",600,600);
-   for (int i=0;i<size(Bin::eta_bins);i++){
-    TGraph* h = new TGraph(6,Bin::pT_bins,xs + (i*size(Bin::eta_bins)));
-    h->Draw("*");
+
+   double* pts = new double[Bin::numPTBins];
+
+  TMultiGraph *mg = new TMultiGraph();
+  TGraph g[Bin::numEtaBins];
+   for (int i=0;i<Bin::numEtaBins;i++){
+     // construct array of X's for eta_index = i
+      for (int j=0;j<Bin::numPTBins;j++){
+        pts[j] = getXValueAt(xs,j,i);
+      }
+    g[i] = TGraph(Bin::numPTBins,Bin::pT_bins , pts);
+    mg->Add(g);
    }
+   mg->Draw("AL*");
+   c->BuildLegend();
 }
 
 
@@ -286,7 +295,7 @@ void likelihood(char *fileName) {
 
   Bin dummy (0,0);
 
-  for (Long64_t i = 0; i < 1000000; i++) {
+  for (Long64_t i = 0; i < nentries; i++) {
     Long64_t tentry = t1->LoadTree(i);
     b_el_charge->GetEntry(tentry);
     b_el_pt->GetEntry(tentry);
@@ -309,7 +318,6 @@ void likelihood(char *fileName) {
     mass = TMath::Power(energy,2) - px*px - py*py - pz*pz;
     mass = TMath::Sqrt(mass);
     // cout << TMath::Sqrt(mass) << endl;
-    graph->Fill(mass);
     if (mass < 80000 || mass > 100000) continue;  // mass between 80-100 MeV
 
     eta_0 = TMath::Abs(eta_0);
@@ -358,13 +366,12 @@ void likelihood(char *fileName) {
 
   myFile->Close();
 
-  graph->Draw();
   minimize();
 
   // output truth
   cout << "MC TRUTH ----------\n";
-  for (int i = 0; i < size(Bin::pT_bins) ; i++) {
-    for (int j = 0; j < size(Bin::eta_bins) ; j++) {
+  for (int i = 0; i < Bin::numPTBins ; i++) {
+    for (int j = 0; j < Bin::numEtaBins ; j++) {
       Bin b(i,j);
       if (mc_total.get(dummy,b) == 0) {
         cout << "0\t";
