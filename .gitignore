@@ -7,6 +7,10 @@ Makefile.inc
 #    gSystem->Load("/path/to/delphes/libDelphes");
 rootlogon.C
 
+# output files
+*.pdf
+*.tsv
+
 # .vscode/**
 .vscode/
 
