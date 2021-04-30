@@ -1,19 +1,3 @@
-# Build
-1. Install ROOT and HepMC3
-2. From here either use MadGraph or Pythia for MC event generation
-  - Pythia
-    - [Install Pythia and Delphes](https://cp3.irmp.ucl.ac.be/projects/delphes/wiki/WorkBook/Pythia8)
-    - `. $DELPHES/DephesPythia8 $DELPHES/cards/delphes_card_ATLAS.tcl configZtoee.cmnd delphes_output.root`
-  - MadGraph
-    - Install MadGraph
-    - Generate the process `p p > Z , Z > e+ e-` and output to HepMC format
-    - `. $DELPHES/DephesHepMC $DELPHES/cards/delphes_card_ATLAS.tcl delphes_output.root output.hepmc`
-4. `root -l`
-5. `gROOT->ProcessLine(".include /path/to/delphes/");`
-`gROOT->ProcessLine(".include /path/to/delphes/external/");`
-6. `gSystem->Load("/path/to/delphes/libDelphes");`
-7. `.x diElectronMass.C`
-
 # Measurement of the chance of misidentification of electrons in Accelerator event data
 ## Project Roadmap
 
